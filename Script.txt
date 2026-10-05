@@ -126,7 +126,7 @@ local function openBindPicker(key, name)
     bindPicking = { key = key, name = name, at = os.clock() }
     BINDS._ignoreMouseUntil = os.clock() + 0.6
     local lg = getgenv().UN_LANG
-    local tail = lg=="ru" and " (Р¶РјРё РєР»Р°РІРёС€Сѓ, ESC=РѕС‚РјРµРЅР°)" or lg=="uk" and " (РЅР°С‚РёСЃРЅРё РєР»Р°РІС–С€Сѓ, ESC=СЃРєР°СЃСѓРІР°С‚Рё)" or " (press key, ESC=cancel)"
+    local tail = lg=="ru" and " (жми клавишу, ESC=отмена)" or lg=="uk" and " (натисни клавішу, ESC=скасувати)" or " (press key, ESC=cancel)"
     notif("bind "..name..tail, true)
 end
 
@@ -176,15 +176,31 @@ local function bootShowInner()
         return b
     end
     bootTrace("gui-built")
-    title.Text="в…  STEP 1 / 2 : DEVICE"
-    local b1=btn("PHONE",48,function() getgenv().UN_DEVICE="Mobile" end)
-    local b2=btn("PC",102,function() getgenv().UN_DEVICE="PC" end)
-    local hint=Instance.new("TextLabel",f) hint.Size=UDim2.new(1,0,0,20) hint.Position=UDim2.new(0,0,1,-22)
-    hint.BackgroundTransparency=1 hint.Text="StarWare setup" hint.TextColor3=Color3.fromRGB(140,160,190)
-    hint.Font=Enum.Font.GothamMedium hint.TextSize=11
-    while not getgenv().UN_DEVICE do task.wait(0.1) end
-    b1:Destroy() b2:Destroy() hint:Destroy()
-    title.Text="в…  STEP 2 / 2 : LANGUAGE"
+    -- Автоопределение телефона: если экран тач и нет клавиатуры — сразу Mobile
+    local autoMobile = false
+    pcall(function()
+        local uis = game:GetService("UserInputService")
+        autoMobile = uis.TouchEnabled and not uis.MouseEnabled
+    end)
+    if autoMobile then
+        getgenv().UN_DEVICE = "Mobile"
+        title.Text="★  STEP 1 / 2 : DEVICE (Mobile)"
+        local hint=Instance.new("TextLabel",f) hint.Size=UDim2.new(1,0,0,20) hint.Position=UDim2.new(0,0,1,-22)
+        hint.BackgroundTransparency=1 hint.Text="auto-detected touch device" hint.TextColor3=Color3.fromRGB(140,160,190)
+        hint.Font=Enum.Font.GothamMedium hint.TextSize=11
+        task.wait(0.35)
+        hint:Destroy()
+    else
+        title.Text="★  STEP 1 / 2 : DEVICE"
+        local b1=btn("PHONE",48,function() getgenv().UN_DEVICE="Mobile" end)
+        local b2=btn("PC",102,function() getgenv().UN_DEVICE="PC" end)
+        local hint=Instance.new("TextLabel",f) hint.Size=UDim2.new(1,0,0,20) hint.Position=UDim2.new(0,0,1,-22)
+        hint.BackgroundTransparency=1 hint.Text="StarWare setup" hint.TextColor3=Color3.fromRGB(140,160,190)
+        hint.Font=Enum.Font.GothamMedium hint.TextSize=11
+        while not getgenv().UN_DEVICE do task.wait(0.1) end
+        b1:Destroy() b2:Destroy() hint:Destroy()
+    end
+    title.Text="★  STEP 2 / 2 : LANGUAGE"
     f.Size=UDim2.new(0,300,0,278) f.Position=UDim2.new(0.5,-150,0.5,-139)
     btn("English",48,function() getgenv().UN_LANG="en" end)
     btn("Russian",102,function() getgenv().UN_LANG="ru" end)
@@ -713,7 +729,7 @@ ka_tick = function()
 end
 
 -- ============================================================
--- AUTO GET GUNDROP (exact shitaro version)
+-- AUTO GET GUNDROP
 -- ============================================================
 local function grab_has_role()
     if not grab_round_mod then
@@ -1760,7 +1776,6 @@ local function mkESP()
                     h.FillColor = col
                     h.OutlineColor = col
                 elseif fl.espGhost and roleCache[pl.Name] == "Murderer" then
-                    -- ghost: РёС‰РµРј РјРѕРґРµР»СЊ РјР°СЂРґРµСЂР° РїРѕ РІСЃРµРјСѓ workspace, Р° РЅРµ С‚РѕР»СЊРєРѕ РІ РєРѕСЂРЅРµ
                     local ghost = workspace:FindFirstChild(pl.Name, true)
                     if ghost and ghost:IsA("Model") and ghost ~= LP.Character then
                         local hasPart = ghost:FindFirstChildWhichIsA("BasePart", true) ~= nil
@@ -1994,21 +2009,25 @@ task.spawn(function()
         end
     end
     local IS_MOBILE = getgenv().UN_DEVICE == "Mobile"
+    -- Fallback: если на тач-устройстве случайно выбран PC — принудительно мобильный вид
+    if not IS_MOBILE and UIS.TouchEnabled and not UIS.MouseEnabled then
+        IS_MOBILE = true
+    end
     local LANG = getgenv().UN_LANG or "ru"
     local LTAB = {
-        ru={Combat="Р‘РѕР№",Move="Р”РІРёР¶РµРЅРёРµ",Troll="РўСЂРѕР»Р»СЊ",Visuals="Р’РёР·СѓР°Р»",Jump="РџСЂС‹Р¶РѕРє",World="РњРёСЂ",ESP="Р•РЎРџ",Theme="РўРµРјР°",Extra="Р­РєСЃС‚СЂР°",Btns="РљРЅРѕРїРєРё",
-        ["Silent Aim"]="РЎР°Р№Р»РµРЅС‚ РђРёРј",["Silent Predict"]="РџСЂРµРґРёРєС‚",WallCheck="РЎРєРІРѕР·СЊ СЃС‚РµРЅС‹",["Wallbang"]="РЎРєРІРѕР·СЊ СЃС‚РµРЅС‹",["Knife Silent"]="РќРѕР¶ РЎР°Р№Р»РµРЅС‚",["Kill Aura"]="РљРёР»Р» РђСѓСЂР°",["grab gun"]="РђРІС‚Рѕ Р“Р°РЅ",["Bullet Tracer"]="РўСЂР°СЃРµСЂ РџСѓР»СЊ",["Gun Tracer"]="РўСЂР°СЃРµСЂ Р“Р°РЅР°",
-        ["Walk:"]="РҐРѕРґСЊР±Р°:",Walkspeed="РЎРєРѕСЂРѕСЃС‚СЊ РҐРѕРґСЊР±С‹",Speed="РЎРєРѕСЂРѕСЃС‚СЊ",["Jump:"]="РџСЂС‹Р¶РѕРє:",JumpPower="РЎРёР»Р° РџСЂС‹Р¶РєР°",Power="РњРѕС‰РЅРѕСЃС‚СЊ",["Infinite Jump"]="Р‘РµСЃРєРѕРЅРµС‡РЅС‹Р№ РџСЂС‹Р¶РѕРє",["Character:"]="РџРµСЂСЃРѕРЅР°Р¶:",HipHeight="Р’С‹СЃРѕС‚Р° РҐРёРїР°",Hip="РҐРёРї",Noclip="РќРѕРєР»РёРї",["Fly:"]="РџРѕР»РµС‚:",Fly="Р¤Р»Р°Р№",FlySpeed="РЎРєРѕСЂРѕСЃС‚СЊ Р¤Р»Р°СЏ",["Spin:"]="РЎРїРёРЅ:",Spin="РЎРїРёРЅ",SpinSpeed="РЎРєРѕСЂРѕСЃС‚СЊ РЎРїРёРЅР°",["Gravity:"]="Р“СЂР°РІРёС‚Р°С†РёСЏ:",["Custom Gravity"]="РЎРІРѕСЏ Р“СЂР°РІРёС‚Р°С†РёСЏ",Gravity="Р“СЂР°РІРёС‚Р°С†РёСЏ",["Reset Move"]="РЎР±СЂРѕСЃ",["Teleport:"]="РўРµР»РµРїРѕСЂС‚:",["TP to Map"]="РўРџ РЅР° РљР°СЂС‚Сѓ",["TP to Lobby"]="РўРџ РІ Р›РѕР±Р±Рё",["Anti Fall (void)"]="РђРЅС‚Рё Р’РѕР№Рґ",["Anti Fling"]="РђРЅС‚Рё Р¤Р»РёРЅРі",["Tracer Settings"]="РќР°СЃС‚СЂРѕР№РєРё РўСЂР°СЃРµСЂР°",
-        ["Fling:"]="Р¤Р»РёРЅРі:",["Fling Nearest"]="Р¤Р»РёРЅРі Р‘Р»РёР¶РЅРµРіРѕ",["Fling All"]="Р¤Р»РёРЅРі Р’СЃРµС…",["Fling Murderer"]="Р¤Р»РёРЅРі РњР°СЂРґРµСЂР°",["Fling Sheriff"]="Р¤Р»РёРЅРі РЁРµСЂРёС„Р°",["Anoyances:"]="РџСЂРёРєРѕР»С‹:",["Sit Spam"]="РЎРїР°Рј РЎРёРґРµРЅРёРµРј",["Follow Nearest"]="РЎР»РµРґРёС‚СЊ Р·Р° Р‘Р»РёР¶РЅРёРј",["Stop All Troll"]="РЎС‚РѕРї РўСЂРѕР»Р»СЊ",["Fun:"]="Р¤Р°РЅ:",["TP to Murder"]="РўРџ Рє РњР°СЂРґРµСЂСѓ",["TP to Sheriff"]="РўРџ Рє РЁРµСЂРёС„Сѓ",["Spin Aura (fling around)"]="РЎРїРёРЅ РђСѓСЂР°",["Dizzy (spin+jump)"]="Р”РёР·Р·Рё",["Kill All"]="РЈР±РёС‚СЊ Р’СЃРµС…",
-        ["Neon Trail"]="РќРµРѕРЅ РўСЂРµР№Р»",["China Hat"]="РљРёС‚Р°Р№СЃРєР°СЏ РЁР»СЏРїР°",["Body Glow"]="РЎРІРµС‡РµРЅРёРµ РўРµР»Р°",Rainbow="Р Р°РґСѓРіР°",
-        ["Aura Particles"]="РђСѓСЂР° Р§Р°СЃС‚РёС†",["Sky Dust"]="РќРµР±РµСЃРЅР°СЏ РџС‹Р»СЊ",["Hearts (Sky): toggle"]="РЎРµСЂРґС†Р° РќРµР±Рѕ",["Snow Aura"]="РЎРЅРµР¶РЅР°СЏ РђСѓСЂР°",["Bounce Particles"]="РџСЂС‹РіР°СЋС‰РёРµ Р§Р°СЃС‚РёС†С‹",["Hearts (Bounce): toggle"]="РЎРµСЂРґС†Р° Р‘Р°СѓРЅСЃ",["Lightning Aura"]="РђСѓСЂР° РњРѕР»РЅРёРё",["Orb Aura"]="РђСѓСЂР° РћСЂР±РѕРІ",["Ghost Trail"]="РџСЂРёР·СЂР°С‡РЅС‹Р№ РЎР»РµРґ",Footsteps="РЎР»РµРґС‹",
-        ["Jump Circles"]="РљСЂСѓРіРё РџСЂС‹Р¶РєР°",["Style:"]="РЎС‚РёР»СЊ:",Classic="РљР»Р°СЃСЃРёРєР°",["Double Ring"]="Р”РІРѕР№РЅРѕРµ РљРѕР»СЊС†Рѕ",["Triple Ripple"]="РўСЂРѕР№РЅР°СЏ Р’РѕР»РЅР°",["Particle Burst"]="Р’Р·СЂС‹РІ Р§Р°СЃС‚РёС†",
-        ["Cyberpunk Atmo"]="РљРёР±РµСЂРїР°РЅРє РђС‚РјРѕ",FullBright="Р¤СѓР»Р±СЂР°Р№С‚",Skybox="РЎРєР°Р№Р±РѕРєСЃ",Bloom="Р‘Р»СѓРј",["Time Presets:"]="Р’СЂРµРјСЏ:",Day="Р”РµРЅСЊ",Sunset="Р—Р°РєР°С‚",Night="РќРѕС‡СЊ",Cyber="РљРёР±РµСЂ",Fog="РўСѓРјР°РЅ",
-        ["Role ESP"]="Р•РЎРџ Р РѕР»РµР№",["Ghost ESP"]="Р•РЎРџ РџСЂРёР·СЂР°РєРѕРІ",["Themes:"]="РўРµРјС‹:",["Config:"]="РљРѕРЅС„РёРі:",Save="РЎРѕС…СЂР°РЅРёС‚СЊ",Load="Р—Р°РіСЂСѓР·РёС‚СЊ",
-        ["Kill Lightning (Murderer)"]="РњРѕР»РЅРёСЏ РЈР±РёР№СЃС‚РІР°",Backtrack="Р‘РµРєС‚СЂРµРє",["Utility:"]="РЈС‚РёР»РёС‚С‹:",["Reset colors"]="РЎР±СЂРѕСЃ Р¦РІРµС‚РѕРІ",["Clear particles"]="РћС‡РёСЃС‚РёС‚СЊ Р§Р°СЃС‚РёС†С‹",
-        Settings="РќР°СЃС‚СЂРѕР№РєРё",["Size:"]="Р Р°Р·РјРµСЂ:",CLOSE="Р—РђРљР Р«РўР¬",Menu="РњРµРЅСЋ",["SET BIND..."]="РќРђР—РќРђР§РРўР¬ Р‘РРќР”",["CLEAR BIND"]="РЈР‘Р РђРўР¬ Р‘РРќР”",
-        trail="РўСЂРµР№Р»",parts="РђСѓСЂР°",skyDust="РџС‹Р»СЊ",snow="РЎРЅРµРі",bounce="Р‘Р°СѓРЅСЃ",lightning="РњРѕР»РЅРёСЏ",orbAura="РћСЂР±С‹",ghost="Р“РѕСЃС‚",foot="РЁР°РіРё",hat="РЁР»СЏРїР°",glow="Р“Р»РѕСѓ",rainbow="Р Р°РґСѓРіР°",jump="РџСЂС‹Р¶РѕРє",atmo="РђС‚РјРѕ",bloom="Р‘Р»СѓРј",esp="Р•РЎРџ",tracer="РўСЂР°СЃРµСЂ",Model="РњРѕРґРµР»СЊ",["Rainbow Body"]="Р Р°РґСѓР¶РЅРѕРµ РўРµР»Рѕ",["Neon Body"]="РќРµРѕРЅРѕРІРѕРµ РўРµР»Рѕ",Invisible="РќРµРІРёРґРёРјРєР°",["Ghost Limbs"]="РџСЂРёР·СЂР°С‡РЅС‹Рµ РєРѕРЅРµС‡РЅРѕСЃС‚Рё",["Big Head"]="Р‘РѕР»СЊС€Р°СЏ РіРѕР»РѕРІР°",Tiny="РњРµР»РєРёР№",["Pumpkin Head"]="РўС‹РєРІРµРЅРЅР°СЏ РіРѕР»РѕРІР°",
-        Headless="Р‘РµР· Р“РѕР»РѕРІС‹",["No Hats"]="Р‘РµР· РЁР»СЏРї",Black="Р§С‘СЂРЅС‹Р№",White="Р‘РµР»С‹Р№",Red="РљСЂР°СЃРЅС‹Р№",Cyan="Р¦РёР°РЅ",Pink="Р РѕР·РѕРІС‹Р№",Gold="Р—РѕР»РѕС‚РѕР№",["Ctrl+Click TP"]="РљРўР Р›+РљР»РёРє РўРџ",["Anti AFK"]="РђРЅС‚Рё РђР¤Рљ",["TP to Random"]="РўРџ Рє РЎР»СѓС‡Р°Р№РЅРѕРјСѓ"},
+        ru={Combat="Бой",Move="Движение",Troll="Тролль",Visuals="Визуал",Jump="Прыжок",World="Мир",ESP="ЕСП",Theme="Тема",Extra="Экстра",Btns="Кнопки",
+        ["Silent Aim"]="Сайлент Аим",["Silent Predict"]="Предикт",WallCheck="Сквозь стены",["Wallbang"]="Сквозь стены",["Knife Silent"]="Нож Сайлент",["Kill Aura"]="Килл Аура",["grab gun"]="Авто Ган",["Bullet Tracer"]="Трасер Пуль",["Gun Tracer"]="Трасер Гана",
+        ["Walk:"]="Ходьба:",Walkspeed="Скорость Ходьбы",Speed="Скорость",["Jump:"]="Прыжок:",JumpPower="Сила Прыжка",Power="Мощность",["Infinite Jump"]="Бесконечный Прыжок",["Character:"]="Персонаж:",HipHeight="Высота Хипа",Hip="Хип",Noclip="Ноклип",["Fly:"]="Полет:",Fly="Флай",FlySpeed="Скорость Флая",["Spin:"]="Спин:",Spin="Спин",SpinSpeed="Скорость Спина",["Gravity:"]="Гравитация:",["Custom Gravity"]="Своя Гравитация",Gravity="Гравитация",["Reset Move"]="Сброс",["Teleport:"]="Телепорт:",["TP to Map"]="ТП на Карту",["TP to Lobby"]="ТП в Лобби",["Anti Fall (void)"]="Анти Войд",["Anti Fling"]="Анти Флинг",["Tracer Settings"]="Настройки Трасера",
+        ["Fling:"]="Флинг:",["Fling Nearest"]="Флинг Ближнего",["Fling All"]="Флинг Всех",["Fling Murderer"]="Флинг Мардера",["Fling Sheriff"]="Флинг Шерифа",["Anoyances:"]="Приколы:",["Sit Spam"]="Спам Сидением",["Follow Nearest"]="Следить за Ближним",["Stop All Troll"]="Стоп Тролль",["Fun:"]="Фан:",["TP to Murder"]="ТП к Мардеру",["TP to Sheriff"]="ТП к Шерифу",["Spin Aura (fling around)"]="Спин Аура",["Dizzy (spin+jump)"]="Диззи",["Kill All"]="Убить Всех",
+        ["Neon Trail"]="Неон Трейл",["China Hat"]="Китайская Шляпа",["Body Glow"]="Свечение Тела",Rainbow="Радуга",
+        ["Aura Particles"]="Аура Частиц",["Sky Dust"]="Небесная Пыль",["Hearts (Sky): toggle"]="Сердца Небо",["Snow Aura"]="Снежная Аура",["Bounce Particles"]="Прыгающие Частицы",["Hearts (Bounce): toggle"]="Сердца Баунс",["Lightning Aura"]="Аура Молнии",["Orb Aura"]="Аура Орбов",["Ghost Trail"]="Призрачный След",Footsteps="Следы",
+        ["Jump Circles"]="Круги Прыжка",["Style:"]="Стиль:",Classic="Классика",["Double Ring"]="Двойное Кольцо",["Triple Ripple"]="Тройная Волна",["Particle Burst"]="Взрыв Частиц",
+        ["Cyberpunk Atmo"]="Киберпанк Атмо",FullBright="Фулбрайт",Skybox="Скайбокс",Bloom="Блум",["Time Presets:"]="Время:",Day="День",Sunset="Закат",Night="Ночь",Cyber="Кибер",Fog="Туман",
+        ["Role ESP"]="ЕСП Ролей",["Ghost ESP"]="ЕСП Призраков",["Themes:"]="Темы:",["Config:"]="Конфиг:",Save="Сохранить",Load="Загрузить",
+        ["Kill Lightning (Murderer)"]="Молния Убийства",Backtrack="Бектрек",["Utility:"]="Утилиты:",["Reset colors"]="Сброс Цветов",["Clear particles"]="Очистить Частицы",
+        Settings="Настройки",["Size:"]="Размер:",CLOSE="ЗАКРЫТЬ",Menu="Меню",["SET BIND..."]="НАЗНАЧИТЬ БИНД",["CLEAR BIND"]="УБРАТЬ БИНД",
+        trail="Трейл",parts="Аура",skyDust="Пыль",snow="Снег",bounce="Баунс",lightning="Молния",orbAura="Орбы",ghost="Гост",foot="Шаги",hat="Шляпа",glow="Глоу",rainbow="Радуга",jump="Прыжок",atmo="Атмо",bloom="Блум",esp="ЕСП",tracer="Трасер",Model="Модель",["Rainbow Body"]="Радужное Тело",["Neon Body"]="Неоновое Тело",Invisible="Невидимка",["Ghost Limbs"]="Призрачные конечности",["Big Head"]="Большая голова",Tiny="Мелкий",["Pumpkin Head"]="Тыквенная голова",
+        Headless="Без Головы",["No Hats"]="Без Шляп",Black="Чёрный",White="Белый",Red="Красный",Cyan="Циан",Pink="Розовый",Gold="Золотой",["Ctrl+Click TP"]="КТРЛ+Клик ТП",["Anti AFK"]="Анти АФК",["TP to Random"]="ТП к Случайному"},
         en={Combat="Combat",Move="Move",Troll="Troll",Visuals="Visuals",Jump="Jump",World="World",ESP="ESP",Theme="Theme",Extra="Extra",Btns="Buttons",
         ["Silent Aim"]="Silent Aim",["Silent Predict"]="Silent Predict",WallCheck="Wall Check",["Wallbang"]="Wallbang",["Knife Silent"]="Knife Silent",["Kill Aura"]="Kill Aura",["grab gun"]="Auto Gun",["Bullet Tracer"]="Bullet Tracer",["Gun Tracer"]="Gun Tracer",
         ["Walk:"]="Walk:",Walkspeed="Walkspeed",Speed="Speed",["Jump:"]="Jump:",JumpPower="JumpPower",Power="Power",["Infinite Jump"]="Infinite Jump",["Character:"]="Character:",HipHeight="HipHeight",Hip="Hip",Noclip="Noclip",["Fly:"]="Fly:",Fly="Fly",FlySpeed="FlySpeed",["Spin:"]="Spin:",Spin="Spin",SpinSpeed="SpinSpeed",["Gravity:"]="Gravity:",["Custom Gravity"]="Custom Gravity",Gravity="Gravity",["Reset Move"]="Reset Move",["Teleport:"]="Teleport:",["TP to Map"]="TP to Map",["TP to Lobby"]="TP to Lobby",["Anti Fall (void)"]="Anti Fall",["Anti Fling"]="Anti Fling",["Tracer Settings"]="Tracer Settings",
@@ -2022,19 +2041,19 @@ task.spawn(function()
         Settings="Settings",["Size:"]="Size:",CLOSE="CLOSE",Menu="Menu",["SET BIND..."]="SET BIND",["CLEAR BIND"]="CLEAR BIND",
         trail="Trail",parts="Aura",skyDust="Dust",snow="Snow",bounce="Bounce",lightning="Lightning",orbAura="Orbs",ghost="Ghost",foot="Steps",hat="Hat",glow="Glow",rainbow="Rainbow",jump="Jump",atmo="Atmo",bloom="Bloom",esp="ESP",tracer="Tracer",Model="Model",["Rainbow Body"]="Rainbow Body",["Neon Body"]="Neon Body",Invisible="Invisible",["Ghost Limbs"]="Ghost Limbs",["Big Head"]="Big Head",Tiny="Tiny",["Pumpkin Head"]="Pumpkin Head",
         Headless="Headless",["No Hats"]="No Hats",Black="Black",White="White",Red="Red",Cyan="Cyan",Pink="Pink",Gold="Gold",["Ctrl+Click TP"]="Ctrl+Click TP",["Anti AFK"]="Anti AFK",["TP to Random"]="TP to Random"},
-        uk={Combat="Р‘С–Р№",Move="Р СѓС…",Troll="РўСЂРѕР»СЊ",Visuals="Р’С–Р·СѓР°Р»",Jump="РЎС‚СЂРёР±РѕРє",World="РЎРІС–С‚",ESP="Р•РЎРџ",Theme="РўРµРјР°",Extra="Р•РєСЃС‚СЂР°",Btns="РљРЅРѕРїРєРё",
-        ["Silent Aim"]="РЎР°Р№Р»РµРЅС‚ РђС–Рј",["Silent Predict"]="РџСЂРµРґРёРєС‚",WallCheck="РљСЂС–Р·СЊ СЃС‚С–РЅРё",["Wallbang"]="РљСЂС–Р·СЊ СЃС‚С–РЅРё",["Knife Silent"]="РќС–Р¶ РЎР°Р№Р»РµРЅС‚",["Kill Aura"]="РљС–Р» РђСѓСЂР°",["grab gun"]="РђРІС‚Рѕ Р“Р°РЅ",["Bullet Tracer"]="РўСЂР°СЃРµСЂ РљСѓР»СЊ",["Gun Tracer"]="РўСЂР°СЃРµСЂ Р“Р°РЅР°",
-        ["Walk:"]="РҐРѕРґСЊР±Р°:",Walkspeed="РЁРІРёРґРєС–СЃС‚СЊ РҐРѕРґСЊР±Рё",Speed="РЁРІРёРґРєС–СЃС‚СЊ",["Jump:"]="РЎС‚СЂРёР±РѕРє:",JumpPower="РЎРёР»Р° РЎС‚СЂРёР±РєР°",Power="РџРѕС‚СѓР¶РЅС–СЃС‚СЊ",["Infinite Jump"]="РќРµСЃРєС–РЅС‡РµРЅРЅРёР№ РЎС‚СЂРёР±РѕРє",["Character:"]="РџРµСЂСЃРѕРЅР°Р¶:",HipHeight="Р’РёСЃРѕС‚Р° РҐС–РїР°",Hip="РҐС–Рї",Noclip="РќРѕРєР»С–Рї",["Fly:"]="РџРѕР»С–С‚:",Fly="Р¤Р»Р°Р№",FlySpeed="РЁРІРёРґРєС–СЃС‚СЊ Р¤Р»Р°СЋ",["Spin:"]="РЎРїС–РЅ:",Spin="РЎРїС–РЅ",SpinSpeed="РЁРІРёРґРєС–СЃС‚СЊ РЎРїС–РЅСѓ",["Gravity:"]="Р“СЂР°РІС–С‚Р°С†С–СЏ:",["Custom Gravity"]="РЎРІРѕСЏ Р“СЂР°РІС–С‚Р°С†С–СЏ",Gravity="Р“СЂР°РІС–С‚Р°С†С–СЏ",["Reset Move"]="РЎРєРёРЅСѓС‚Рё",["Teleport:"]="РўРµР»РµРїРѕСЂС‚:",["TP to Map"]="РўРџ РЅР° РљР°СЂС‚Сѓ",["TP to Lobby"]="РўРџ РІ Р›РѕР±С–",["Anti Fall (void)"]="РђРЅС‚Рё Р’РѕР№Рґ",["Anti Fling"]="РђРЅС‚Рё Р¤Р»С–РЅРі",["Tracer Settings"]="РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ РўСЂР°СЃРµСЂР°",
-        ["Fling:"]="Р¤Р»С–РЅРі:",["Fling Nearest"]="Р¤Р»С–РЅРі Р‘Р»РёР¶РЅСЊРѕРіРѕ",["Fling All"]="Р¤Р»С–РЅРі Р’СЃС–С…",["Fling Murderer"]="Р¤Р»С–РЅРі РњР°СЂРґРµСЂР°",["Fling Sheriff"]="Р¤Р»С–РЅРі РЁРµСЂРёС„Р°",["Anoyances:"]="РџСЂРёРєРѕР»Рё:",["Sit Spam"]="РЎРїР°Рј РЎРёРґС–РЅРЅСЏРј",["Follow Nearest"]="РЎС‚РµР¶РёС‚Рё",["Stop All Troll"]="РЎС‚РѕРї РўСЂРѕР»СЊ",["Fun:"]="Р¤Р°РЅ:",["TP to Murder"]="РўРџ РґРѕ РњР°СЂРґРµСЂР°",["TP to Sheriff"]="РўРџ РґРѕ РЁРµСЂРёС„Р°",["Spin Aura (fling around)"]="РЎРїС–РЅ РђСѓСЂР°",["Dizzy (spin+jump)"]="Р”С–Р·Р·С–",["Kill All"]="Р’Р±РёС‚Рё Р’СЃС–С…",
-        ["Neon Trail"]="РќРµРѕРЅ РўСЂРµР№Р»",["China Hat"]="РљРёС‚Р°Р№СЃСЊРєРёР№ РљР°РїРµР»СЋС…",["Body Glow"]="РЎРІС–С‚С–РЅРЅСЏ РўС–Р»Р°",Rainbow="Р’РµСЃРµР»РєР°",
-        ["Aura Particles"]="РђСѓСЂР° Р§Р°СЃС‚РёРЅРѕРє",["Sky Dust"]="РќРµР±РµСЃРЅРёР№ РџРёР»",["Hearts (Sky): toggle"]="РЎРµСЂС†СЏ РќРµР±Рѕ",["Snow Aura"]="РЎРЅС–РіРѕРІР° РђСѓСЂР°",["Bounce Particles"]="РЎС‚СЂРёР±Р°СЋС‡С– Р§Р°СЃС‚РёРЅРєРё",["Hearts (Bounce): toggle"]="РЎРµСЂС†СЏ Р‘Р°СѓРЅСЃ",["Lightning Aura"]="РђСѓСЂР° Р‘Р»РёСЃРєР°РІРєРё",["Orb Aura"]="РђСѓСЂР° РћСЂР±С–РІ",["Ghost Trail"]="РџСЂРёРјР°СЂРЅРёР№ РЎР»С–Рґ",Footsteps="РЎР»С–РґРё",
-        ["Jump Circles"]="РљРѕР»Р° РЎС‚СЂРёР±РєР°",["Style:"]="РЎС‚РёР»СЊ:",Classic="РљР»Р°СЃРёРєР°",["Double Ring"]="РџРѕРґРІС–Р№РЅРµ РљС–Р»СЊС†Рµ",["Triple Ripple"]="РџРѕС‚СЂС–Р№РЅР° РҐРІРёР»СЏ",["Particle Burst"]="Р’РёР±СѓС… Р§Р°СЃС‚РёРЅРѕРє",
-        ["Cyberpunk Atmo"]="РљС–Р±РµСЂРїР°РЅРє РђС‚РјРѕ",FullBright="Р¤СѓР»Р±СЂР°Р№С‚",Skybox="РЎРєР°Р№Р±РѕРєСЃ",Bloom="Р‘Р»СѓРј",["Time Presets:"]="Р§Р°СЃ:",Day="Р”РµРЅСЊ",Sunset="Р—Р°С…С–Рґ",Night="РќС–С‡",Cyber="РљС–Р±РµСЂ",Fog="РўСѓРјР°РЅ",
-        ["Role ESP"]="Р•РЎРџ Р РѕР»РµР№",["Ghost ESP"]="Р•РЎРџ РџСЂРёРІРёРґС–РІ",["Themes:"]="РўРµРјРё:",["Config:"]="РљРѕРЅС„С–Рі:",Save="Р—Р±РµСЂРµРіС‚Рё",Load="Р—Р°РІР°РЅС‚Р°Р¶РёС‚Рё",
-        ["Kill Lightning (Murderer)"]="Р‘Р»РёСЃРєР°РІРєР° Р’Р±РёРІСЃС‚РІР°",Backtrack="Р‘РµРєС‚СЂРµРє",["Utility:"]="РЈС‚РёР»С–С‚Рё:",["Reset colors"]="РЎРєРёРЅСѓС‚Рё РљРѕР»СЊРѕСЂРё",["Clear particles"]="РћС‡РёСЃС‚РёС‚Рё Р§Р°СЃС‚РёРЅРєРё",
-        Settings="РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ",["Size:"]="Р РѕР·РјС–СЂ:",CLOSE="Р—РђРљР РРўР",Menu="РњРµРЅСЋ",["SET BIND..."]="РџР РР—РќРђР§РРўР Р‘Р†РќР”",["CLEAR BIND"]="РџР РР‘Р РђРўР Р‘Р†РќР”",
-        trail="РўСЂРµР№Р»",parts="РђСѓСЂР°",skyDust="РџРёР»",snow="РЎРЅС–Рі",bounce="Р‘Р°СѓРЅСЃ",lightning="Р‘Р»РёСЃРєР°РІРєР°",orbAura="РћСЂР±Рё",ghost="Р“РѕСЃС‚",foot="РљСЂРѕРєРё",hat="РљР°РїРµР»СЋС…",glow="Р“Р»РѕСѓ",rainbow="Р’РµСЃРµР»РєР°",jump="РЎС‚СЂРёР±РѕРє",atmo="РђС‚РјРѕ",bloom="Р‘Р»СѓРј",esp="Р•РЎРџ",tracer="РўСЂР°СЃРµСЂ",Model="РњРѕРґРµР»СЊ",["Rainbow Body"]="Р Р°Р№РґСѓР¶РЅРµ РўС–Р»Рѕ",["Neon Body"]="РќРµРѕРЅРѕРІРµ РўС–Р»Рѕ",Invisible="РќРµРІРёРґРёРјРєР°",["Ghost Limbs"]="РџСЂРёРјР°СЂРЅС– РєС–РЅС†С–РІРєРё",["Big Head"]="Р’РµР»РёРєР° РіРѕР»РѕРІР°",Tiny="Р”СЂС–Р±РЅРёР№",["Pumpkin Head"]="Р“Р°СЂР±СѓР·РѕРІР° РіРѕР»РѕРІР°",
-        Headless="Р‘РµР· Р“РѕР»РѕРІРё",["No Hats"]="Р‘РµР· РљР°РїРµР»СЋС…Р°",Black="Р§РѕСЂРЅРёР№",White="Р‘С–Р»РёР№",Red="Р§РµСЂРІРѕРЅРёР№",Cyan="Р¦РёР°РЅ",Pink="Р РѕР¶РµРІРёР№",Gold="Р—РѕР»РѕС‚РёР№",["Ctrl+Click TP"]="РљРўР Р›+РљР»С–Рє РўРџ",["Anti AFK"]="РђРЅС‚Рё РђР¤Рљ",["TP to Random"]="РўРџ РґРѕ Р’РёРїР°РґРєРѕРІРѕРіРѕ"},
+        uk={Combat="Бій",Move="Рух",Troll="Тролль",Visuals="Візуал",Jump="Стрибок",World="Світ",ESP="ЕСП",Theme="Тема",Extra="Екстра",Btns="Кнопки",
+        ["Silent Aim"]="Сайлент Аім",["Silent Predict"]="Предикт",WallCheck="Крізь стіни",["Wallbang"]="Крізь стіни",["Knife Silent"]="Ніж Сайлент",["Kill Aura"]="Кіл Аура",["grab gun"]="Авто Ган",["Bullet Tracer"]="Трасер Куль",["Gun Tracer"]="Трасер Гана",
+        ["Walk:"]="Ходьба:",Walkspeed="Швидкість Ходьби",Speed="Швидкість",["Jump:"]="Стрибок:",JumpPower="Сила Стрибка",Power="Потужність",["Infinite Jump"]="Нескінченний Стрибок",["Character:"]="Персонаж:",HipHeight="Висота Хіпа",Hip="Хіп",Noclip="Нокліп",["Fly:"]="Політ:",Fly="Флай",FlySpeed="Швидкість Флаю",["Spin:"]="Спін:",Spin="Спін",SpinSpeed="Швидкість Спіну",["Gravity:"]="Гравітація:",["Custom Gravity"]="Своя Гравітація",Gravity="Гравітація",["Reset Move"]="Скинути",["Teleport:"]="Телепорт:",["TP to Map"]="ТП на Карту",["TP to Lobby"]="ТП в Лобі",["Anti Fall (void)"]="Анти Войд",["Anti Fling"]="Анти Флінг",["Tracer Settings"]="Налаштування Трасера",
+        ["Fling:"]="Флінг:",["Fling Nearest"]="Флінг Ближнього",["Fling All"]="Флінг Всіх",["Fling Murderer"]="Флінг Мардера",["Fling Sheriff"]="Флінг Шерифа",["Anoyances:"]="Приколи:",["Sit Spam"]="Спам Сидінням",["Follow Nearest"]="Стежити",["Stop All Troll"]="Стоп Троль",["Fun:"]="Фан:",["TP to Murder"]="ТП до Мардера",["TP to Sheriff"]="ТП до Шерифа",["Spin Aura (fling around)"]="Спін Аура",["Dizzy (spin+jump)"]="Діззі",["Kill All"]="Вбити Всіх",
+        ["Neon Trail"]="Неон Трейл",["China Hat"]="Китайський Капелюх",["Body Glow"]="Світіння Тіла",Rainbow="Веселка",
+        ["Aura Particles"]="Аура Частинок",["Sky Dust"]="Небесний Пил",["Hearts (Sky): toggle"]="Серця Небо",["Snow Aura"]="Снігова Аура",["Bounce Particles"]="Стрибаючі Частинки",["Hearts (Bounce): toggle"]="Серця Баунс",["Lightning Aura"]="Аура Блискавки",["Orb Aura"]="Аура Орбів",["Ghost Trail"]="Примарний Слід",Footsteps="Сліди",
+        ["Jump Circles"]="Кола Стрибка",["Style:"]="Стиль:",Classic="Класика",["Double Ring"]="Подвійне Кільце",["Triple Ripple"]="Потрійна Хвиля",["Particle Burst"]="Вибух Частинок",
+        ["Cyberpunk Atmo"]="Кіберпанк Атмо",FullBright="Фулбрайт",Skybox="Скайбокс",Bloom="Блум",["Time Presets:"]="Час:",Day="День",Sunset="Захід",Night="Ніч",Cyber="Кібер",Fog="Туман",
+        ["Role ESP"]="ЕСП Ролей",["Ghost ESP"]="ЕСП Привидів",["Themes:"]="Теми:",["Config:"]="Конфіг:",Save="Зберегти",Load="Завантажити",
+        ["Kill Lightning (Murderer)"]="Блискавка Вбивства",Backtrack="Бектрек",["Utility:"]="Утиліти:",["Reset colors"]="Скинути Кольори",["Clear particles"]="Очистити Частинки",
+        Settings="Налаштування",["Size:"]="Розмір:",CLOSE="ЗАКРИТИ",Menu="Меню",["SET BIND..."]="ПРИЗНАЧИТИ БІНД",["CLEAR BIND"]="ПРИБРАТИ БІНД",
+        trail="Трейл",parts="Аура",skyDust="Пил",snow="Сніг",bounce="Баунс",lightning="Блискавка",orbAura="Орби",ghost="Гост",foot="Кроки",hat="Капелюх",glow="Глоу",rainbow="Веселка",jump="Стрибок",atmo="Атмо",bloom="Блум",esp="ЕСП",tracer="Трасер",Model="Модель",["Rainbow Body"]="Райдужне Тіло",["Neon Body"]="Неонове Тіло",Invisible="Невидимка",["Ghost Limbs"]="Примарні кінцівки",["Big Head"]="Велика голова",Tiny="Дрібний",["Pumpkin Head"]="Гарбузова голова",
+        Headless="Без Голови",["No Hats"]="Без Капелюха",Black="Чорний",White="Білий",Red="Червоний",Cyan="Циан",Pink="Рожевий",Gold="Золотий",["Ctrl+Click TP"]="КТРЛ+Клік ТП",["Anti AFK"]="Анти АФК",["TP to Random"]="ТП до Випадкового"},
     }
     local function T(s) local t=LTAB[LANG] or LTAB.ru return t[s] or s end
     getgenv().UN_T = T
@@ -2055,6 +2074,7 @@ task.spawn(function()
     sg.Name = "UN_ADDON_GUI"
     sg.ResetOnSpawn = false
     sg.DisplayOrder = 999999
+    sg.IgnoreGuiInset = true
     sg.Parent = PlayerGui
 
     local setP
@@ -2064,8 +2084,8 @@ task.spawn(function()
 
     local main = Instance.new("Frame", sg)
     if IS_MOBILE then
-        main.Size=UDim2.new(0.94,0,0.82,0)
-        main.Position=UDim2.new(0.03,0,0.09,0)
+        main.Size=UDim2.new(1,-8,1,-8)
+        main.Position=UDim2.new(0,4,0,4)
     else
         main.Size=UDim2.new(0,620,0,470)
         main.Position=UDim2.new(0.5,-310,0.5,-235)
@@ -2090,7 +2110,7 @@ task.spawn(function()
     local logo = Instance.new("TextLabel", tt)
     logo.Size=UDim2.new(0,28,0,28); logo.Position=UDim2.new(0,10,0,8)
     logo.BackgroundColor3=A; logo.BorderSizePixel=0
-    logo.Text="в…"; logo.TextColor3=BG; logo.Font=Enum.Font.GothamBlack; logo.TextSize=18
+    logo.Text="★"; logo.TextColor3=BG; logo.Font=Enum.Font.GothamBlack; logo.TextSize=18
     Instance.new("UICorner", logo).CornerRadius = UDim.new(0,9)
     local nm = Instance.new("TextLabel", tt)
     nm.Size=UDim2.new(0,220,0,22); nm.Position=UDim2.new(0,46,0,5)
@@ -2098,17 +2118,21 @@ task.spawn(function()
     nm.Font=Enum.Font.GothamBlack; nm.TextSize=16; nm.TextXAlignment=Enum.TextXAlignment.Left
     local ver = Instance.new("TextLabel", tt)
     ver.Size=UDim2.new(0,220,0,13); ver.Position=UDim2.new(0,47,0,26)
-    ver.BackgroundTransparency=1; ver.Text="v2.0 вЂў MM2"; ver.TextColor3=A2
+    ver.BackgroundTransparency=1; ver.Text="v2.0 • MM2"; ver.TextColor3=A2
     ver.Font=Enum.Font.GothamMedium; ver.TextSize=10; ver.TextXAlignment=Enum.TextXAlignment.Left
     local accent = Instance.new("Frame", main)
     accent.Size=UDim2.new(1,-24,0,2); accent.Position=UDim2.new(0,12,0,46)
     accent.BackgroundColor3=A; accent.BorderSizePixel=0
 
     local closeBtn = Instance.new("TextButton", main)
-    closeBtn.Size=UDim2.new(0,24,0,24); closeBtn.Position=UDim2.new(1,-32,0,10)
+    if IS_MOBILE then
+        closeBtn.Size=UDim2.new(0,40,0,40); closeBtn.Position=UDim2.new(1,-46,0,2)
+    else
+        closeBtn.Size=UDim2.new(0,24,0,24); closeBtn.Position=UDim2.new(1,-32,0,10)
+    end
     closeBtn.BackgroundColor3=Color3.fromRGB(80,25,35); closeBtn.Text="X"
     closeBtn.TextColor3=Color3.fromRGB(255,180,180)
-    closeBtn.Font=Enum.Font.GothamBold; closeBtn.TextSize=12; closeBtn.BorderSizePixel=0
+    closeBtn.Font=Enum.Font.GothamBold; closeBtn.TextSize=IS_MOBILE and 18 or 12; closeBtn.BorderSizePixel=0
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1,0)
     pressFx(closeBtn)
     closeBtn.MouseButton1Click:Connect(function()
@@ -2117,9 +2141,13 @@ task.spawn(function()
     end)
 
     local sideW = IS_MOBILE and 104 or 138
-    local sb = Instance.new("Frame", main)
+    local sb = Instance.new("ScrollingFrame", main)
     sb.Size=UDim2.new(0,sideW,1,-64); sb.Position=UDim2.new(0,8,0,56)
     sb.BackgroundColor3=BG2; sb.BorderSizePixel=0
+    sb.ScrollBarThickness=2; sb.ScrollBarImageColor3=A
+    sb.CanvasSize=UDim2.new(0,0,0,0)
+    sb.AutomaticCanvasSize=Enum.AutomaticSize.Y
+    sb.ScrollingDirection=Enum.ScrollingDirection.Y
     Instance.new("UICorner", sb).CornerRadius = UDim.new(0,12)
     local sbl = Instance.new("UIListLayout", sb)
     sbl.FillDirection = Enum.FillDirection.Vertical
@@ -2185,13 +2213,19 @@ task.spawn(function()
     end)
 
     local openBtn = Instance.new("TextButton", sg)
-    openBtn.Size=UDim2.new(0,100,0,44)
-    openBtn.Position=UDim2.new(1,-116,0,20)
+    if IS_MOBILE then
+        openBtn.Size=UDim2.new(0,130,0,56)
+        openBtn.Position=UDim2.new(1,-140,0,70)
+    else
+        openBtn.Size=UDim2.new(0,100,0,44)
+        openBtn.Position=UDim2.new(1,-116,0,20)
+    end
     openBtn.BackgroundColor3=A
-    openBtn.Text="в… "..T("Menu"); openBtn.TextColor3=Color3.new(1,1,1)
+    openBtn.Text="★ "..T("Menu"); openBtn.TextColor3=Color3.new(1,1,1)
     openBtn.Font=Enum.Font.GothamBlack; openBtn.TextSize=14
     openBtn.BorderSizePixel=0; openBtn.AutoButtonColor=false
     Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0,12)
+    if IS_MOBILE then openBtn.TextSize=16 end
     local obStroke = Instance.new("UIStroke", openBtn)
     obStroke.Color=Color3.fromRGB(255,180,255); obStroke.Thickness=2
     pressFx(openBtn)
@@ -2202,6 +2236,32 @@ task.spawn(function()
             pcall(function() Tween:Create(mainScale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale=1}):Play() end)
         end
     end)
+
+    -- Мобильное перетаскивание главного окна за шапку tt
+    if IS_MOBILE then
+        do
+            local dragging, dragStart, startPos = false, nil, nil
+            local function inputBegan(input)
+                if input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    dragStart = input.Position
+                    startPos = main.Position
+                    input.Changed:Connect(function()
+                        if input.UserInputState == Enum.UserInputState.End then
+                            dragging = false
+                        end
+                    end)
+                end
+            end
+            tt.InputBegan:Connect(inputBegan)
+            UIS.InputChanged:Connect(function(input)
+                if dragging and input.UserInputType == Enum.UserInputType.Touch then
+                    local delta = input.Position - dragStart
+                    main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                end
+            end)
+        end
+    end
 
     local tabs, pages = {}, {}
     local function paintTab(x, sel)
@@ -2280,7 +2340,7 @@ task.spawn(function()
         local ps = Instance.new("UIStroke", p); ps.Color=A; ps.Thickness=1.5
         local hd = Instance.new("TextLabel", p)
         hd.Size=UDim2.new(1,0,0,24); hd.BackgroundColor3=BG2; hd.BorderSizePixel=0
-        hd.Text="  "..T(key).." вЂў "..T("Settings"); hd.TextColor3=A
+        hd.Text="  "..T(key).." • "..T("Settings"); hd.TextColor3=A
         hd.Font=Enum.Font.GothamBold; hd.TextSize=11
         hd.TextXAlignment=Enum.TextXAlignment.Left; hd.ZIndex=501
         Instance.new("UICorner", hd).CornerRadius = UDim.new(0,8)
@@ -2368,7 +2428,7 @@ task.spawn(function()
         local ps = Instance.new("UIStroke", p); ps.Color=A; ps.Thickness=1.5
         local hd = Instance.new("TextLabel", p)
         hd.Size=UDim2.new(1,0,0,24); hd.BackgroundColor3=BG2; hd.BorderSizePixel=0
-        hd.Text="  "..T(cfg.t).." вЂў "..T("Settings"); hd.TextColor3=A
+        hd.Text="  "..T(cfg.t).." • "..T("Settings"); hd.TextColor3=A
         hd.Font=Enum.Font.GothamBold; hd.TextSize=11
         hd.TextXAlignment=Enum.TextXAlignment.Left; hd.ZIndex=501
         Instance.new("UICorner", hd).CornerRadius = UDim.new(0,8)
@@ -2439,7 +2499,7 @@ task.spawn(function()
         while ADDON.loaded do
             if bindPicking then
                 bindOverlay.Visible = true
-                bindOverlay.Text = bindPicking.name.."\n"..(LANG=="ru" and "РЅР°Р¶РјРё РєР»Р°РІРёС€Сѓ (ESC=РѕС‚РјРµРЅР°)" or LANG=="uk" and "РЅР°С‚РёСЃРЅРё РєР»Р°РІС–С€Сѓ (ESC=СЃРєР°СЃСѓРІР°С‚Рё)" or "press any key (ESC=cancel)")
+                bindOverlay.Text = bindPicking.name.."\n"..(LANG=="ru" and "нажми клавишу (ESC=отмена)" or LANG=="uk" and "натисни клавішу (ESC=скасувати)" or "press any key (ESC=cancel)")
             else
                 bindOverlay.Visible = false
             end
@@ -2590,7 +2650,7 @@ task.spawn(function()
         b.Size=UDim2.new(1,-4,0,22)
         b.BackgroundTransparency=1; b.TextColor3=A
         b.Font=Enum.Font.GothamBlack; b.TextSize=11
-        b.Text="вЂ”  "..name; b.TextXAlignment=Enum.TextXAlignment.Left
+        b.Text="—  "..name; b.TextXAlignment=Enum.TextXAlignment.Left
         local line = Instance.new("Frame", b)
         line.Size=UDim2.new(1,0,0,1); line.Position=UDim2.new(0,0,1,-1)
         line.BackgroundColor3=A; line.BackgroundTransparency=0.55; line.BorderSizePixel=0
@@ -2795,8 +2855,8 @@ task.spawn(function()
             hb.MouseLeave:Connect(function() MOVE[key]=false end)
             return hb
         end
-        MOVE.upBtn = flyHold("в–І", UDim2.new(1,-76,0.5,60), "flyUp")
-        MOVE.dnBtn = flyHold("в–ј", UDim2.new(1,-76,0.5,130), "flyDown")
+        MOVE.upBtn = flyHold("▲", UDim2.new(1,-76,0.5,60), "flyUp")
+        MOVE.dnBtn = flyHold("▼", UDim2.new(1,-76,0.5,130), "flyDown")
     end
 
     mkToggle(tC,"Silent Aim",     function() return SA.enabled end, function(v) SA.enabled=v end)
