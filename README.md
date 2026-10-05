@@ -1,2 +1,0 @@
-# Link.lua
-Lol
