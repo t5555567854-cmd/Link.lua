@@ -176,11 +176,9 @@ local function bootShowInner()
         return b
     end
     bootTrace("gui-built")
-    -- Автоопределение телефона: если экран тач и нет клавиатуры — сразу Mobile
     local autoMobile = false
     pcall(function()
-        local uis = game:GetService("UserInputService")
-        autoMobile = uis.TouchEnabled and not uis.MouseEnabled
+        autoMobile = UIS.TouchEnabled
     end)
     if autoMobile then
         getgenv().UN_DEVICE = "Mobile"
@@ -358,7 +356,6 @@ local function getRole(pl)
     return chk(bp) or chk(ch)
 end
 
--- cachedRole: prefers PlayerData cache so ghost murderer stays red
 local function cachedRole(pl)
     refreshRoleCache()
     local cached = roleCache[pl.Name]
@@ -1699,7 +1696,7 @@ toggleFog = function(v)
 end
 
 -- ============================================================
--- ESP (uses cachedRole so ghost murderer stays RED)
+-- ESP
 -- ============================================================
 local function applySkinAll()
     local c = LP.Character; if not c then return end
@@ -1996,6 +1993,7 @@ end
 -- UI
 -- ============================================================
 task.spawn(function()
+    local okUI, errUI = pcall(function()
     local t0 = os.clock()
     while not getgenv().UN_BOOT_OK and os.clock() - t0 < 30 do task.wait(0.1) end
     if not getgenv().UN_BOOT_OK then
@@ -2009,7 +2007,6 @@ task.spawn(function()
         end
     end
     local IS_MOBILE = getgenv().UN_DEVICE == "Mobile"
-    -- Fallback: если на тач-устройстве случайно выбран PC — принудительно мобильный вид
     if not IS_MOBILE and UIS.TouchEnabled and not UIS.MouseEnabled then
         IS_MOBILE = true
     end
@@ -2141,13 +2138,9 @@ task.spawn(function()
     end)
 
     local sideW = IS_MOBILE and 104 or 138
-    local sb = Instance.new("ScrollingFrame", main)
+    local sb = Instance.new("Frame", main)
     sb.Size=UDim2.new(0,sideW,1,-64); sb.Position=UDim2.new(0,8,0,56)
     sb.BackgroundColor3=BG2; sb.BorderSizePixel=0
-    sb.ScrollBarThickness=2; sb.ScrollBarImageColor3=A
-    sb.CanvasSize=UDim2.new(0,0,0,0)
-    sb.AutomaticCanvasSize=Enum.AutomaticSize.Y
-    sb.ScrollingDirection=Enum.ScrollingDirection.Y
     Instance.new("UICorner", sb).CornerRadius = UDim.new(0,12)
     local sbl = Instance.new("UIListLayout", sb)
     sbl.FillDirection = Enum.FillDirection.Vertical
@@ -2237,31 +2230,9 @@ task.spawn(function()
         end
     end)
 
-    -- Мобильное перетаскивание главного окна за шапку tt
-    if IS_MOBILE then
-        do
-            local dragging, dragStart, startPos = false, nil, nil
-            local function inputBegan(input)
-                if input.UserInputType == Enum.UserInputType.Touch then
-                    dragging = true
-                    dragStart = input.Position
-                    startPos = main.Position
-                    input.Changed:Connect(function()
-                        if input.UserInputState == Enum.UserInputState.End then
-                            dragging = false
-                        end
-                    end)
-                end
-            end
-            tt.InputBegan:Connect(inputBegan)
-            UIS.InputChanged:Connect(function(input)
-                if dragging and input.UserInputType == Enum.UserInputType.Touch then
-                    local delta = input.Position - dragStart
-                    main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-                end
-            end)
-        end
-    end
+    main.Visible = true
+    openBtn.Visible = true
+    print("[starware] menu visible, size=", tostring(main.AbsoluteSize))
 
     local tabs, pages = {}, {}
     local function paintTab(x, sel)
@@ -3103,6 +3074,38 @@ task.spawn(function()
     end)
 
     print("[starware] GUI ready")
+    end)
+    if not okUI then
+        warn("[starware] UI ERROR: "..tostring(errUI))
+        pcall(function() if writefile then writefile("un_ui_error.txt", tostring(errUI)) end end)
+        pcall(function()
+            local pg = LP:FindFirstChild("PlayerGui")
+            if pg then
+                local fb = pg:FindFirstChild("UN_FALLBACK")
+                if not fb then
+                    fb = Instance.new("ScreenGui")
+                    fb.Name = "UN_FALLBACK"
+                    fb.ResetOnSpawn = false
+                    fb.DisplayOrder = 1000000
+                    fb.IgnoreGuiInset = true
+                    fb.Parent = pg
+                    local b = Instance.new("TextButton", fb)
+                    b.Size = UDim2.new(0, 100, 0, 100)
+                    b.Position = UDim2.new(1, -120, 0.5, -50)
+                    b.BackgroundColor3 = Color3.fromRGB(255,60,60)
+                    b.Text = "ERR"
+                    b.TextColor3 = Color3.new(1,1,1)
+                    b.Font = Enum.Font.GothamBlack
+                    b.TextSize = 22
+                    b.BorderSizePixel = 0
+                    Instance.new("UICorner", b).CornerRadius = UDim.new(1,0)
+                    b.MouseButton1Click:Connect(function()
+                        b.Text = tostring(errUI):sub(1, 40)
+                    end)
+                end
+            end
+        end)
+    end
 end)
 
 -- ============================================================
@@ -3317,6 +3320,8 @@ ADDON.unload = function()
         if old then pcall(function() old:Destroy() end) end
         local oldT = PlayerGui:FindFirstChild("UN_ADDON_TOASTS")
         if oldT then pcall(function() oldT:Destroy() end) end
+        local fb = PlayerGui:FindFirstChild("UN_FALLBACK")
+        if fb then pcall(function() fb:Destroy() end) end
     end
     getgenv().UN_ADDON = nil
     print("[addon] unloaded")
